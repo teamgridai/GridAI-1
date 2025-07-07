@@ -2,10 +2,14 @@ import os
 import openai
 import pdfplumber
 import pytesseract
-from pdf2image import convert_from_path
+import fitz
 import tempfile
+import streamlit as st
 from typing import List
 from dotenv import load_dotenv
+
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -24,13 +28,18 @@ def extract_text_from_pdfs(pdf_paths: List[str]) -> str:
                 if text:
                     combined_text += text + "\n"
                 else:
-                    # If text extraction fails, fallback to OCR for that page
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        images = convert_from_path(path, first_page=i + 1, last_page=i + 1, dpi=300,
-                                                   output_folder=temp_dir)
-                        if images:
-                            ocr_text = pytesseract.image_to_string(images[0])
-                            combined_text += ocr_text + "\n"
+                    # Fallback: render page to image with PyMuPDF and OCR
+                    doc = fitz.open(path)
+                    page = doc.load_page(i)  # zero-based page number
+                    pix = page.get_pixmap(dpi=300)
+                    img_bytes = pix.tobytes("png")
+
+                    # Use temp file to create a temp file for pytesseract
+                    with tempfile.NamedTemporaryFile(suffix=".png") as temp_img_file:
+                        temp_img_file.write(img_bytes)
+                        temp_img_file.flush()
+                        ocr_text = pytesseract.image_to_string(temp_img_file.name)
+                        combined_text += ocr_text + "\n"
 
     return combined_text
 

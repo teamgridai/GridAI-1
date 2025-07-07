@@ -4,12 +4,68 @@ import pdfplumber
 import fitz
 import tempfile
 import streamlit as st
+import pyrebase
 from typing import List
 from dotenv import load_dotenv
 
+
+firebaseConfig = {
+    "apiKey": "AIzaSyC-Wq9aSD5PWlEGqWo0hXSPB2GPvI_Dq_o",
+    "authDomain": "gridai-ca691.firebaseapp.com",
+    "projectId": "gridai-ca691",
+    "storageBucket": "gridai-ca691.appspot.com",  # was .firebasestorage.app (incorrect)
+    "messagingSenderId": "423156035059",
+    "appId": "1:423156035059:web:0165f766a0a03d4a333686",
+    "measurementId": "G-R7JG7LLWVC"
+}
+
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
+
+def show_signup():
+    st.subheader("Sign Up")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    if st.button("Sign Up"):
+        try:
+            auth.create_user_with_email_and_password(email, password)
+            st.success("Account created! Please log in.")
+        except Exception as e:
+            st.error("Signup failed: " + str(e))
+
+def show_login():
+    st.subheader("Login")
+    email = st.text_input("Email", key="login_email")
+    password = st.text_input("Password", type="password", key="login_password")
+    if st.button("Login"):
+        try:
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.success("Logged in successfully")
+            st.session_state['user'] = user
+        except Exception as e:
+            st.error(f"Login failed: {e}")
+
+
+def main():
+    st.title("FastGridAI Login Portal")
+
+    if 'user' not in st.session_state:
+        option = st.sidebar.selectbox("Choose action", ["Login", "Sign Up"])
+        if option == "Login":
+            show_login()
+        else:
+            show_signup()
+    else:
+        st.success(f"Welcome, {st.session_state['user']['email']}!")
+        if st.button("Logout"):
+            del st.session_state['user']
+
+
+if __name__ == "__main__":
+    main()
+
+
 openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 

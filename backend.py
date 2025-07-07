@@ -1,7 +1,6 @@
 import os
 import openai
 import pdfplumber
-import pytesseract
 import fitz
 import tempfile
 import streamlit as st
@@ -38,7 +37,7 @@ def extract_text_from_pdfs(pdf_paths: List[str]) -> str:
                     with tempfile.NamedTemporaryFile(suffix=".png") as temp_img_file:
                         temp_img_file.write(img_bytes)
                         temp_img_file.flush()
-                        ocr_text = pytesseract.image_to_string(temp_img_file.name)
+                        ocr_text = page.get_text()
                         combined_text += ocr_text + "\n"
 
     return combined_text
